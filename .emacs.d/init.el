@@ -1,3 +1,4 @@
+; (setq debug-on-error t)
 ;;; 外部依存なし Emacs本体設定
 ;; elファイルを読み込むようにするロードパスの設定
 (when (< emacs-major-version 23)
@@ -8,12 +9,14 @@
     (dolist (path paths paths)
       (let ((default-directory
 	      (expand-file-name (concat user-emacs-directory path))))
+	(unless (file-exists-p default-directory)
+	  (make-directory default-directory))
 	(add-to-list 'load-path default-directory)
 	(if (fboundp 'normal-top-level-add-subdirs-to-load-path)
 	    (normal-top-level-add-subdirs-to-load-path))))))
 
 (add-to-load-path "elisp" "conf" "public_repos")
-
+    
 ;; Emacs自体が書き込む設定先の変更
 (setq custom-file (locate-user-emacs-file "custom.el"))
 (unless (file-exists-p custom-file)
@@ -43,10 +46,12 @@
 (global-linum-mode t)
 ;; よくわからん挨拶メッセージは非表示
 (setq inhibit-startup-message t)
-;; quitコマンドを用意...C-x C-cに等しい
+;; quitコマンドを用意...C-x C-cと違い強制終了させたい
 (defun quit ()
   (interactive)
-  (save-buffers-kill-terminal))
+; (save-buffers-kill-terminal))
+  (kill-emacs))
+  
 ;; init.elを素早く開けるようにする
 (defun init-el ()
   (interactive)
@@ -59,6 +64,19 @@
 ;; regionの背景色文字色変更
 (set-face-background 'region "gray")
 (set-face-foreground 'region "black")
+
+;;; emacsclient関連
+
+(unless (file-exists-p (setq emcs (concat (getenv "HOME") "/bin/emcs")))
+  (write-region "#!/bin/bash\n" nil emcs t)
+  (write-region "emacsclient -e '(other-window -1)'\n" nil emcs t)
+  (write-region "emacsclient $@ &\n" nil emcs t))
+  ;(shell-command "chmod 775 emcs"))
+
+; server start for emacs-client
+(require 'server)
+(unless (server-running-p)
+  (server-start))
 
 ;;; ここから外部依存 leafを使用
 
@@ -133,15 +151,26 @@
 
 (leaf multi-term
   :ensure t
-  :custom ((multi-term-program . "/bin/bash"))
+  :custom (`(multi-term-program . ,(getenv "SHELL")))
   :config
-  (defun open-shell ()
-   (interactive)
+  (defun open-shell-sub (new)
    (split-window-below)
    (enlarge-window 5)
    (other-window 1)
-   (multi-term))
-  :bind (("C-^" . open-shell))
+   (let ((term) (res))
+     (if (or new (null (setq term (dolist (buf (buffer-list) res)
+                                    (if (string-match "*terminal<[0-9]+>*" (buffer-name buf))
+                                        (setq res buf))))))
+         (multi-term)
+       (switch-to-buffer term))))
+  (defun open-shell ()
+    (interactive)
+    (open-shell-sub t))
+  (defun to-shell ()
+    (interactive)
+    (open-shell-sub nil))
+  :bind (("C-^" . to-shell)
+         ("C-M-^" . open-shell))
   :bind (:term-raw-map
          ("C-t" . other-window)))
 
@@ -149,11 +178,8 @@
   :ensure t
   :bind (:ac-mode-map
          ("M-TAB" . auto-complete))
-  :config (ac-config-default)
+  :config
+  (ac-config-default)
+  (global-auto-complete-mode t)
   :custom ((ac-use-menu-map . t)
            (ac-ignore-case . nil)))
-
-; server start for emacs-client
-(require 'server)
-(unless (server-running-p)
-  (server-start))
