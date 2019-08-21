@@ -132,8 +132,7 @@
   :ensure t
   :leaf-defer nil
   :bind (("M-/" . undo-tree-redo))
-  :config
-  (global-undo-tree-mode t))
+  :custom ((global-undo-tree-mode . t)))
 
 (leaf zenburn-theme
   :ensure t
@@ -171,13 +170,9 @@
 
 (leaf multi-term
   :ensure t
-  :custom (`(multi-term-program ,(getenv "SHELL")))
-  :bind (("C-^" . to-shell)
-         ("C-M-^" . open-shell))
-  :bind (:term-raw-map
-         ("C-t" . other-window))
-  :config
-  (defun open-shell-sub (new)
+  :custom `((multi-term-program . ,(getenv "SHELL")))
+  :preface
+  (defun n/open-shell-sub (new)
    (split-window-below)
    (enlarge-window 5)
    (other-window 1)
@@ -187,12 +182,16 @@
                                         (setq res buf))))))
          (multi-term)
        (switch-to-buffer term))))
-  (defun open-shell ()
+  (defun n/open-shell ()
     (interactive)
-    (open-shell-sub t))
-  (defun to-shell ()
+    (n/open-shell-sub t))
+  (defun n/to-shell ()
     (interactive)
-    (open-shell-sub nil)))
+    (n/open-shell-sub nil))
+  :bind (("C-^"   . n/to-shell)
+         ("C-M-^" . n/open-shell)
+         (:term-raw-map
+          ("C-t" . other-window))))
 
 (leaf auto-complete
   :ensure t
