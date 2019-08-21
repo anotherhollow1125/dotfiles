@@ -26,6 +26,7 @@
 ;; キーバインドの追加
 (define-key global-map (kbd "C-c l") 'toggle-truncate-lines) ; 折り返し
 (define-key global-map (kbd "C-t") 'other-window) ; ウィンドウ切り替え
+(define-key global-map (kbd "C-x f") 'find-file) ; C-x C-f と同等。もともとはset-fill-columnだけど使わないので上書き
 
 ;; 文字数カウント
 (defun count-lines-and-chars ()
@@ -51,7 +52,24 @@
   (interactive)
 ; (save-buffers-kill-terminal))
   (kill-emacs))
-  
+
+;; 単体行コメントアウト用コマンド
+(defun comment-out-current-line ()
+  "toggle comment out using comment-dwim"
+  (interactive)
+  (move-beginning-of-line 1)
+  (set-mark-command nil)
+  (move-end-of-line 1)
+  (comment-dwim nil))
+(global-set-key (kbd "C-c /") 'comment-out-current-line)
+
+;; chromeでプレビューするようにしたい
+(when (executable-find "google-chrome")
+  (defun preview-by-chrome (file)
+    (interactive "ffilename: ")
+    (shell-command (format "google-chrome %s" file)))
+  (global-set-key (kbd "C-c g") 'preview-by-chrome))
+
 ;; init.elを素早く開けるようにする
 (defun init-el ()
   (interactive)
@@ -66,11 +84,11 @@
 (set-face-foreground 'region "black")
 
 ;;; emacsclient関連
-
+;; chmod 775 emcs は各自で行ってください
 (unless (file-exists-p (setq emcs (concat (getenv "HOME") "/bin/emcs")))
   (write-region "#!/bin/bash\n" nil emcs t)
   (write-region "emacsclient -e '(other-window -1)'\n" nil emcs t)
-  (write-region "emacsclient $@ &\n" nil emcs t))
+  (write-region "emacsclient $@\n" nil emcs t))
   ;(shell-command "chmod 775 emcs"))
 
 ; server start for emacs-client
@@ -112,8 +130,10 @@
 
 (leaf undo-tree
   :ensure t
-  :config (global-undo-tree-mode t)
-  :bind (("M-/" . undo-tree-redo)))
+  :leaf-defer nil
+  :bind (("M-/" . undo-tree-redo))
+  :config
+  (global-undo-tree-mode t))
 
 (leaf zenburn-theme
   :ensure t
@@ -151,7 +171,11 @@
 
 (leaf multi-term
   :ensure t
-  :custom (`(multi-term-program . ,(getenv "SHELL")))
+  :custom (`(multi-term-program ,(getenv "SHELL")))
+  :bind (("C-^" . to-shell)
+         ("C-M-^" . open-shell))
+  :bind (:term-raw-map
+         ("C-t" . other-window))
   :config
   (defun open-shell-sub (new)
    (split-window-below)
@@ -168,18 +192,45 @@
     (open-shell-sub t))
   (defun to-shell ()
     (interactive)
-    (open-shell-sub nil))
-  :bind (("C-^" . to-shell)
-         ("C-M-^" . open-shell))
-  :bind (:term-raw-map
-         ("C-t" . other-window)))
+    (open-shell-sub nil)))
 
 (leaf auto-complete
   :ensure t
-  :bind (:ac-mode-map
-         ("M-TAB" . auto-complete))
+  :leaf-defer nil
   :config
   (ac-config-default)
-  (global-auto-complete-mode t)
   :custom ((ac-use-menu-map . t)
-           (ac-ignore-case . nil)))
+           (ac-ignore-case . nil))
+  :bind (:ac-mode-map
+         ; ("M-TAB" . auto-complete))
+         ("M-t" . auto-complete)))
+
+(leaf yatex
+  :ensure t
+  ;; :init
+  ;; (setq YaTeX-inhibit-prefix-letter t) ; C-c C-t letter
+  :custom ((tex-command . "ptex2pdf -u -l")
+           (bibtex-command . "pbibtex"))
+  :bind (("C-c C-t" . YaTeX-typeset-menu))
+  :mode (("\\.tex\\'" . yatex-mode))
+  :config
+  (add-hook 'yatex-mode-hook
+            #'(lambda ()
+                (reftex-mode t)
+                (define-key reftex-mode-map
+                  (concat YaTeX-prefix ">") 'YaTeX-comment-region)
+                (define-key reftex-mode-map
+                  (concat YaTeX-prefix "<") 'YaTeX-uncomment-region))))
+
+(leaf markdown-mode
+  :ensure t)
+  ;; markdown-preview-modeはいまいちだった => pandocを検討中
+  ;; :preface
+  ;; (unless (executable-find "markdown")
+  ;;   (message "!!caution!!: you have to install 'markdown' command to preview markdown"))
+  ;; :config
+  ;; (leaf markdown-preview-mode
+  ;;   :ensure t
+  ;;   :custom (`(markdown-preview-stylesheets . ,(list "github.css")))
+  ;;   :mode (("\\.md\\'" . gfm-mode))
+  ;;   :bind (("C-c m" . markdown-preview-mode))))
