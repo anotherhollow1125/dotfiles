@@ -207,8 +207,8 @@
 (when (eq system-type 'windows-nt)
   (defun namn/to-shell ()
     (interactive)
-    (enlarge-window 5)
-    (shell))
+    (shell)
+    (shrink-window 5))
   (define-key global-map (kbd "C-^") 'namn/to-shell))
 
 (leaf auto-complete
