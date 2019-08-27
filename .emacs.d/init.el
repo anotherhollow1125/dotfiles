@@ -4,7 +4,7 @@
 (when (< emacs-major-version 23)
   (defvar user-emacs-directory "~/.emacs.d/"))
 
-(defun add-to-load-path (&rest paths)
+(defun namn/add-to-load-path (&rest paths)
   (let (path)
     (dolist (path paths paths)
       (let ((default-directory
@@ -15,8 +15,8 @@
 	(if (fboundp 'normal-top-level-add-subdirs-to-load-path)
 	    (normal-top-level-add-subdirs-to-load-path))))))
 
-(add-to-load-path "elisp" "conf" "public_repos")
-    
+(namn/add-to-load-path "elisp" "conf" "public_repos")
+
 ;; Emacs自体が書き込む設定先の変更
 (setq custom-file (locate-user-emacs-file "custom.el"))
 (unless (file-exists-p custom-file)
@@ -27,17 +27,23 @@
 (define-key global-map (kbd "C-c l") 'toggle-truncate-lines) ; 折り返し
 (define-key global-map (kbd "C-t") 'other-window) ; ウィンドウ切り替え
 (define-key global-map (kbd "C-x f") 'find-file) ; C-x C-f と同等。もともとはset-fill-columnだけど使わないので上書き
+(define-key global-map (kbd "C-<up>") 'scroll-down-line)
+(define-key global-map (kbd "C-<down>") 'scroll-up-line)
+(define-key global-map (kbd "C-c k") 'kill-buffer-and-window)
 
 ;; 文字数カウント
-(defun count-lines-and-chars ()
+(defun namn/count-lines-and-chars ()
   (if mark-active
       (format " @%dlines, %dchars@"
 	      (count-lines (region-beginning) (region-end))
 	      (- (region-end) (region-beginning)))
     (format "\t%dchars" (buffer-size))))
 
+(if (not (boundp 'default-mode-line-format))
+    (setq default-mode-line-format (default-value 'mode-line-format)))
+
 (add-to-list 'default-mode-line-format
-	     '(:eval (count-lines-and-chars)) t)
+	     '(:eval (namn/count-lines-and-chars)) t)
 
 ;; 現在位置列数表示
 (column-number-mode t)
@@ -47,28 +53,27 @@
 (global-linum-mode t)
 ;; よくわからん挨拶メッセージは非表示
 (setq inhibit-startup-message t)
+;; バックアップファイルの保存先の変更
+(setq backup-directory-alist '((".*" . "~/.ehist")))
 ;; quitコマンドを用意...C-x C-cと違い強制終了させたい
-(defun quit ()
-  (interactive)
-; (save-buffers-kill-terminal))
-  (kill-emacs))
+(defalias 'quit 'kill-emacs)
 
 ;; 単体行コメントアウト用コマンド
-(defun comment-out-current-line ()
+(defun namn/comment-out-current-line ()
   "toggle comment out using comment-dwim"
   (interactive)
   (move-beginning-of-line 1)
   (set-mark-command nil)
   (move-end-of-line 1)
   (comment-dwim nil))
-(global-set-key (kbd "C-c /") 'comment-out-current-line)
+(global-set-key (kbd "C-c /") 'namn/comment-out-current-line)
 
 ;; chromeでプレビューするようにしたい
 (when (executable-find "google-chrome")
-  (defun preview-by-chrome (file)
+  (defun namn/preview-by-chrome (file)
     (interactive "ffilename: ")
     (shell-command (format "google-chrome %s" file)))
-  (global-set-key (kbd "C-c g") 'preview-by-chrome))
+  (global-set-key (kbd "C-c g") 'namn/preview-by-chrome))
 
 ;; init.elを素早く開けるようにする
 (defun init-el ()
@@ -78,18 +83,21 @@
 (setq show-paren-delay 0)
 (show-paren-mode t)
 (setq show-paren-style 'parenthesis)
-(set-face-background 'show-paren-match-face "gray")
+;(set-face-background 'show-paren-match-face "gray")
+(set-face-attribute 'show-paren-match nil
+      :background "gray"
+      :underline 'unspecified)
+
 ;; regionの背景色文字色変更
 (set-face-background 'region "gray")
 (set-face-foreground 'region "black")
 
 ;;; emacsclient関連
-;; chmod 775 emcs は各自で行ってください
 (unless (file-exists-p (setq emcs (concat (getenv "HOME") "/bin/emcs")))
   (write-region "#!/bin/bash\n" nil emcs t)
   (write-region "emacsclient -e '(other-window -1)'\n" nil emcs t)
-  (write-region "emacsclient $@\n" nil emcs t))
-  ;(shell-command "chmod 775 emcs"))
+  (write-region "emacsclient $@\n" nil emcs t)
+  (shell-command (format "chmod u+x %s" emcs)))
 
 ; server start for emacs-client
 (require 'server)
@@ -138,8 +146,8 @@
   :ensure t
   :config (load-theme 'zenburn t))
 
-(leaf init-loader
-  :ensure t)
+;; (leaf init-loader
+;;   :ensure t)
 
 (leaf helm
   :ensure t
@@ -152,7 +160,7 @@
     ;; (leaf moccur-edit
     ;;   :ensure t)))
 
-;; Helm occurがまともに使えるようになるまでの代用
+;; Helm moccurになれるまで用
 (defun finder ()
   "find with regexp from current buffer"
   (interactive)
@@ -169,10 +177,11 @@
 ;; 代用ここまで
 
 (leaf multi-term
+  :disabled (eq system-type 'windows-nt)
   :ensure t
   :custom `((multi-term-program . ,(getenv "SHELL")))
   :preface
-  (defun n/open-shell-sub (new)
+  (defun namn/open-shell-sub (new)
    (split-window-below)
    (enlarge-window 5)
    (other-window 1)
@@ -182,16 +191,25 @@
                                         (setq res buf))))))
          (multi-term)
        (switch-to-buffer term))))
-  (defun n/open-shell ()
+  (defun namn/open-shell ()
     (interactive)
-    (n/open-shell-sub t))
-  (defun n/to-shell ()
+    (namn/open-shell-sub t))
+  (defun namn/to-shell ()
     (interactive)
-    (n/open-shell-sub nil))
-  :bind (("C-^"   . n/to-shell)
-         ("C-M-^" . n/open-shell)
+    (namn/open-shell-sub nil))
+  :bind (("C-^"   . namn/to-shell)
+         ("C-M-^" . namn/open-shell)
          (:term-raw-map
           ("C-t" . other-window))))
+
+;; もしWindowsの場合...いつか設定ファイル分割します。
+;; 意外とshellは使い心地がよかった
+(when (eq system-type 'windows-nt)
+  (defun namn/to-shell ()
+    (interactive)
+    (enlarge-window 5)
+    (shell))
+  (define-key global-map (kbd "C-^") 'namn/to-shell))
 
 (leaf auto-complete
   :ensure t
@@ -222,8 +240,28 @@
                   (concat YaTeX-prefix "<") 'YaTeX-uncomment-region))))
 
 (leaf markdown-mode
-  :ensure t)
-  ;; markdown-preview-modeはいまいちだった => pandocを検討中
+  :ensure t
+  :init
+  (leaf *markdown-preview
+    :disabled (not (and (executable-find "md2pdf_by_pandoc")
+                        (setq viewer (or (executable-find "evince") (executable-find "google-chrome")))))
+    :preface
+    (defun namn/md-compile ()
+      (interactive)
+      (call-process-shell-command (format "md2pdf_by_pandoc %s" (buffer-file-name)) nil "*Shell Command Output*" t))
+    (defun namn/md-preview ()
+      (interactive)
+      (namn/md-compile)
+      (call-process-shell-command (format "TMP=%s; %s ${TMP%%.md}.pdf &" (buffer-file-name) viewer) nil 0))
+    :bind (:markdown-mode-map
+           :package markdown-mode
+           ("C-c m" . namn/md-preview)
+           ("C-c c" . namn/md-compile))))
+
+
+;; (define-key markdown-mode-map (kbd "C-c m") 'namn/md-preview)
+
+  ;; markdown-preview-modeはいまいちだった => pandocを使用することにした
   ;; :preface
   ;; (unless (executable-find "markdown")
   ;;   (message "!!caution!!: you have to install 'markdown' command to preview markdown"))
@@ -233,3 +271,4 @@
   ;;   :custom (`(markdown-preview-stylesheets . ,(list "github.css")))
   ;;   :mode (("\\.md\\'" . gfm-mode))
   ;;   :bind (("C-c m" . markdown-preview-mode))))
+
