@@ -205,6 +205,8 @@
 (when (eq system-type 'windows-nt)
   (defun namn/to-shell ()
     (interactive)
+    (split-window-below)
+    (other-window 1)
     (eshell)
     (shrink-window 5))
   (define-key global-map (kbd "C-^") 'namn/to-shell))
