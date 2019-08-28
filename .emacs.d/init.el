@@ -39,11 +39,10 @@
 	      (- (region-end) (region-beginning)))
     (format "\t%dchars" (buffer-size))))
 
-(if (not (boundp 'default-mode-line-format))
-    (setq default-mode-line-format (default-value 'mode-line-format)))
-
-(add-to-list 'default-mode-line-format
+(add-to-list 'mode-line-format
 	     '(:eval (namn/count-lines-and-chars)) t)
+
+(setq-default mode-line-format mode-line-format)
 
 ;; 現在位置列数表示
 (column-number-mode t)
@@ -202,12 +201,11 @@
          (:term-raw-map
           ("C-t" . other-window))))
 
-;; もしWindowsの場合...いつか設定ファイル分割します。
-;; 意外とshellは使い心地がよかった
+;; もしWindowsの場合...応急処置的です。
 (when (eq system-type 'windows-nt)
   (defun namn/to-shell ()
     (interactive)
-    (shell)
+    (eshell)
     (shrink-window 5))
   (define-key global-map (kbd "C-^") 'namn/to-shell))
 
