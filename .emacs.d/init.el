@@ -8,12 +8,12 @@
   (let (path)
     (dolist (path paths paths)
       (let ((default-directory
-	      (expand-file-name (concat user-emacs-directory path))))
-	(unless (file-exists-p default-directory)
-	  (make-directory default-directory))
-	(add-to-list 'load-path default-directory)
-	(if (fboundp 'normal-top-level-add-subdirs-to-load-path)
-	    (normal-top-level-add-subdirs-to-load-path))))))
+              (expand-file-name (concat user-emacs-directory path))))
+        (unless (file-exists-p default-directory)
+          (make-directory default-directory))
+        (add-to-list 'load-path default-directory)
+        (if (fboundp 'normal-top-level-add-subdirs-to-load-path)
+            (normal-top-level-add-subdirs-to-load-path))))))
 
 (namn/add-to-load-path "elisp" "conf" "public_repos")
 
@@ -30,19 +30,6 @@
 (define-key global-map (kbd "C-<up>") 'scroll-down-line)
 (define-key global-map (kbd "C-<down>") 'scroll-up-line)
 (define-key global-map (kbd "C-c k") 'kill-buffer-and-window)
-
-;; 文字数カウント
-(defun namn/count-lines-and-chars ()
-  (if mark-active
-      (format " @%dlines, %dchars@"
-	      (count-lines (region-beginning) (region-end))
-	      (- (region-end) (region-beginning)))
-    (format "\t%dchars" (buffer-size))))
-
-(add-to-list 'mode-line-format
-	     '(:eval (namn/count-lines-and-chars)) t)
-
-(setq-default mode-line-format mode-line-format)
 
 ;; 現在位置列数表示
 (column-number-mode t)
@@ -78,18 +65,6 @@
 (defun init-el ()
   (interactive)
   (find-file (expand-file-name (concat user-emacs-directory "init.el"))))
-;; paren-mode : 対応するカッコを強調して表示
-(setq show-paren-delay 0)
-(show-paren-mode t)
-(setq show-paren-style 'parenthesis)
-;(set-face-background 'show-paren-match-face "gray")
-(set-face-attribute 'show-paren-match nil
-      :background "gray"
-      :underline 'unspecified)
-
-;; regionの背景色文字色変更
-(set-face-background 'region "gray")
-(set-face-foreground 'region "black")
 
 ;;; emacsclient関連
 (unless (file-exists-p (setq emcs (concat (getenv "HOME") "/bin/emcs")))
@@ -141,9 +116,67 @@
   :bind (("M-/" . undo-tree-redo))
   :custom ((global-undo-tree-mode . t)))
 
+;;; 表示関連ここから
+
 (leaf zenburn-theme
   :ensure t
   :config (load-theme 'zenburn t))
+
+;; paren-mode : 対応するカッコを強調して表示
+(setq show-paren-delay 0)
+(show-paren-mode t)
+(setq show-paren-style 'parenthesis)
+;(set-face-background 'show-paren-match-face "gray")
+(set-face-attribute 'show-paren-match nil
+      :background "gray"
+      :underline 'unspecified)
+
+;; regionの背景色文字色変更
+(set-face-attribute 'region nil
+                    :background "gray"
+                    :foreground "black")
+
+
+(leaf smart-mode-line
+  :ensure t
+  :custom ((sml/no-confirm-load-theme . t)
+           (sml/theme . 'dark)
+           (sml/shorten-directory . -1))
+  :config
+  (sml/setup))
+
+;; 文字数カウント
+(defun namn/count-lines-and-chars ()
+  (if mark-active
+      (format " @%dl, %dc@"
+              (count-lines (region-beginning) (region-end))
+              (- (region-end) (region-beginning)))
+    (format " (%d)" (buffer-size))))
+
+;; (add-to-list 'mode-line-format
+;;              '(:eval (namn/count-lines-and-chars)) t)
+(defun namn/set-cl-counter ()
+  (setq-default mode-line-front-space
+                (add-to-list 'mode-line-front-space
+                             '(:eval (namn/count-lines-and-chars)) t)))
+(add-hook 'after-init-hook 'namn/set-cl-counter)
+
+;; TAB狩り
+
+(leaf whitespace
+  :ensure t
+  :custom
+  ((whitespace-style . '(face
+                         trailing
+                         tabs
+                         ;; spaces
+                         ;; empty
+                         space-mark
+                         tab-mark))
+   (whitespace-display-mappings . '((tab-mark ?\t [?\u00BB ?\t] [?\\ ?\t])))
+   (global-whitespace-mode . t)))
+
+;;; 表示関連ここまで
 
 ;; (leaf init-loader
 ;;   :ensure t)
@@ -202,14 +235,12 @@
           ("C-t" . other-window))))
 
 ;; もしWindowsの場合...応急処置的です。
-(when (eq system-type 'windows-nt)
-  (defun namn/to-shell ()
-    (interactive)
-    (split-window-below)
-    (other-window 1)
-    (eshell)
-    (shrink-window 5))
-  (define-key global-map (kbd "C-^") 'namn/to-shell))
+;; (when (eq system-type 'windows-nt)
+;;   (defun namn/to-shell ()
+;;     (interactive)
+;;     (eshell)
+;;     (shrink-window 5))
+;;   (define-key global-map (kbd "C-^") 'namn/to-shell))
 
 (leaf auto-complete
   :ensure t
