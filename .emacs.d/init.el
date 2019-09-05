@@ -112,7 +112,7 @@
 
 (leaf undo-tree
   :ensure t
-  :leaf-defer nil
+  :leaf-defer nilp
   :bind (("M-/" . undo-tree-redo))
   :custom ((global-undo-tree-mode . t)))
 
@@ -289,7 +289,6 @@
            ("C-c m" . namn/md-preview)
            ("C-c c" . namn/md-compile))))
 
-
 ;; (define-key markdown-mode-map (kbd "C-c m") 'namn/md-preview)
 
   ;; markdown-preview-modeはいまいちだった => pandocを使用することにした
@@ -303,3 +302,8 @@
   ;;   :mode (("\\.md\\'" . gfm-mode))
   ;;   :bind (("C-c m" . markdown-preview-mode))))
 
+(when (executable-find "~/bin/mozc_emacs_helper.sh")
+  (load "setting-for-wsl"))
+
+(leaf magit
+  :ensure t)
