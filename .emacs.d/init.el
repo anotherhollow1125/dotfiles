@@ -43,6 +43,8 @@
 (setq backup-directory-alist '((".*" . "~/.ehist")))
 ;; quitコマンドを用意...C-x C-cと違い強制終了させたい
 (defalias 'quit 'kill-emacs)
+;; ビープ音削除
+(setq ring-bell-function 'ignore)
 
 ;; 単体行コメントアウト用コマンド
 (defun namn/comment-out-current-line ()
@@ -112,7 +114,7 @@
 
 (leaf undo-tree
   :ensure t
-  :leaf-defer nilp
+  :leaf-defer nil
   :bind (("M-/" . undo-tree-redo))
   :custom ((global-undo-tree-mode . t)))
 
@@ -307,3 +309,11 @@
 
 (leaf magit
   :ensure t)
+  ;; 表示バグった
+  ;; :config
+  ;; (leaf git-gutter
+  ;;   :ensure t
+  ;;   :custom ((global-git-gutter-mode . t))
+  ;;   :config
+  ;;   (git-gutter:linum-setup)))
+
