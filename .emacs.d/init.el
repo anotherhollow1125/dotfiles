@@ -68,6 +68,14 @@
   (interactive)
   (find-file (expand-file-name (concat user-emacs-directory "init.el"))))
 
+;; カレントバッファのファイルをゴミ箱に移動する
+(defun trush (bname)
+  (interactive "btrush: ")
+  (let (fname bf)
+    (when (setq fname (buffer-file-name (setq bf (get-buffer bname))))
+      (shell-command (format "mv %s ~/.etrush/" fname))
+      (kill-buffer bf))))
+
 ;;; emacsclient関連
 (unless (file-exists-p (setq emcs (concat (getenv "HOME") "/bin/emcs")))
   (write-region "#!/bin/bash\n" nil emcs t)
@@ -317,3 +325,6 @@
   ;;   :config
   ;;   (git-gutter:linum-setup)))
 
+(leaf fish-mode
+  :disabled (not (executable-find "fish"))
+  :ensure t)
