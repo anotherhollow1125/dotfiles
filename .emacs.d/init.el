@@ -69,12 +69,19 @@
   (find-file (expand-file-name (concat user-emacs-directory "init.el"))))
 
 ;; カレントバッファのファイルをゴミ箱に移動する
-(defun trush (bname)
-  (interactive "btrush: ")
+(defun trash (bname)
+  (interactive "btrash: ")
   (let (fname bf)
     (when (setq fname (buffer-file-name (setq bf (get-buffer bname))))
-      (shell-command (format "mv %s ~/.etrush/" fname))
+      (shell-command (format "mv %s $TRASH" fname))
       (kill-buffer bf))))
+
+;; backward-kill-line ほしかったので取ってきた
+(defun backward-kill-line (arg)
+  "Kill ARG lines backward."
+  (interactive "p")
+  (kill-line (- 1 arg)))
+(global-set-key (kbd "C-x DEL") 'backward-kill-line)
 
 ;;; emacsclient関連
 (unless (file-exists-p (setq emcs (concat (getenv "HOME") "/bin/emcs")))
@@ -293,7 +300,7 @@
     (defun namn/md-preview ()
       (interactive)
       (namn/md-compile)
-      (call-process-shell-command (format "TMP=%s; %s ${TMP%%.md}.pdf &" (buffer-file-name) viewer) nil 0))
+      (call-process-shell-command (format "%s %s &" viewer (replace-regexp-in-string "\.md" "\.pdf" (buffer-file-name))) nil 0))
     :bind (:markdown-mode-map
            :package markdown-mode
            ("C-c m" . namn/md-preview)
