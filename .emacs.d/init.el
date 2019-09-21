@@ -335,3 +335,15 @@
 (leaf fish-mode
   :disabled (not (executable-find "fish"))
   :ensure t)
+
+;; rust-mode
+(leaf rust-mode
+  :disabled (not (executable-find "rustc"))
+  :ensure t
+  :init
+  (leaf racer
+    :ensure t)
+  :mode "\\.rs\\'"
+  :hook (rust-mode-hook . racer-mode) (racer-mode-hook . eldoc-mode)
+  :config
+  (add-to-list 'exec-path (expand-file-name "~/.cargo/bin/")))
