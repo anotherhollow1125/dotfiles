@@ -336,14 +336,37 @@
   :disabled (not (executable-find "fish"))
   :ensure t)
 
-;; rust-mode
-(leaf rust-mode
-  :disabled (not (executable-find "rustc"))
+(leaf flycheck
   :ensure t
-  :init
-  (leaf racer
-    :ensure t)
-  :mode "\\.rs\\'"
-  :hook (rust-mode-hook . racer-mode) (racer-mode-hook . eldoc-mode)
+  :init (global-flycheck-mode))
+
+(leaf flycheck-rust
+  :ensure t)
+
+;; rust-mode
+(leaf *rust
   :config
-  (add-to-list 'exec-path (expand-file-name "~/.cargo/bin/")))
+  (add-to-list 'exec-path (expand-file-name "~/.cargo/bin/"))
+  (leaf rust-mode
+    :disabled (not (executable-find "rustc"))
+    :ensure t
+    :hook
+    (rust-mode-hook . (lambda ()
+                        (racer-mode)
+                        (flycheck-rust-setup)))
+    (racer-mode-hook . eldoc-mode)
+    (racer-mode-hook . (lambda () (auto-complete-mode)))
+    :custom ((rust-format-on-save . t))
+    :mode "\\.rs\\'"))
+
+(leaf leaf
+  :config
+  (leaf leaf-convert :ensure t)
+  (leaf leaf-tree
+    :ensure t
+    :custom ((imenu-list-size . 30)
+             (imenu-list-position . 'left))))
+
+(leaf macrostep
+  :ensure t
+  :bind (("C-c e" . macrostep-expand)))
