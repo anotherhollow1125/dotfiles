@@ -377,9 +377,9 @@
   :leaf-defer nil
   :bind (:yas-minor-mode-map
          :package yasnippet
-         ("C-x i i" . yas-insert-snippet)
-         ("C-x i n" . yas-new-snippet)
-         ("C-x i v" . yas-visit-snippet-file))
+         ("C-c i i" . yas-insert-snippet)
+         ("C-c i n" . yas-new-snippet)
+         ("C-c i v" . yas-visit-snippet-file))
   :config
   (let ((snippet-directory "~/.emacs.d/mysnippets"))
     (unless (file-exists-p snippet-directory)
