@@ -370,3 +370,20 @@
 (leaf macrostep
   :ensure t
   :bind (("C-c e" . macrostep-expand)))
+
+;; yasnippet
+(leaf yasnippet
+  :ensure t
+  :leaf-defer nil
+  :bind (:yas-minor-mode-map
+         :package yasnippet
+         ("C-x i i" . yas-insert-snippet)
+         ("C-x i n" . yas-new-snippet)
+         ("C-x i v" . yas-visit-snippet-file))
+  :config
+  (let ((snippet-directory "~/.emacs.d/mysnippets"))
+    (unless (file-exists-p snippet-directory)
+      (make-directory snippet-directory))
+    (setq yas-snippet-dirs
+          `(,snippet-directory)))
+  (yas-global-mode 1))
