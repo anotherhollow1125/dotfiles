@@ -30,6 +30,7 @@
 (define-key global-map (kbd "C-<up>") 'scroll-down-line)
 (define-key global-map (kbd "C-<down>") 'scroll-up-line)
 (define-key global-map (kbd "C-c k") 'kill-buffer-and-window)
+(define-key global-map (kbd "C-c i d") 'electric-indent-local-mode)
 
 ;; 現在位置列数表示
 (column-number-mode t)
@@ -82,6 +83,17 @@
   (interactive "p")
   (kill-line (- 1 arg)))
 (global-set-key (kbd "C-x DEL") 'backward-kill-line)
+
+;; 行頭の最初の空白文字ではない文字に移動
+(defun move-the-first-char-of-line ()
+  "Function 行頭の最初の空白文字ではない文字に移動."
+  (interactive)
+  (move-beginning-of-line nil)
+  (while (or (eq 9 (following-char)) (eq 32 (following-char)))
+    (forward-char)))
+(global-set-key (kbd "C-c a") 'move-the-first-char-of-line)
+(global-set-key (kbd "C-c C-a") 'move-the-first-char-of-line)
+(global-set-key (kbd "C-#") 'hs-toggle-hiding)
 
 ;;; emacsclient関連
 (unless (file-exists-p (setq emcs (concat (getenv "HOME") "/bin/emcs")))
@@ -349,10 +361,11 @@
   (add-to-list 'exec-path (expand-file-name "~/.cargo/bin/"))
   (leaf rust-mode
     :disabled (not (executable-find "rustc"))
-    :ensure t
+    :ensure t racer
     :hook
     (rust-mode-hook . (lambda ()
                         (racer-mode)
+                        (hs-minor-mode 1)
                         (flycheck-rust-setup)))
     (racer-mode-hook . eldoc-mode)
     (racer-mode-hook . (lambda () (auto-complete-mode)))
@@ -387,3 +400,28 @@
     (setq yas-snippet-dirs
           `(,snippet-directory)))
   (yas-global-mode 1))
+
+(leaf *go
+  :config
+  (add-to-list 'exec-path (expand-file-name "~/.goenv/shims/"))
+  (leaf go-mode
+    :disabled (not (executable-find "go"))
+    :ensure t go-eldoc
+    :hook (go-mode-hook . (lambda ()
+                            (go-eldoc-setup)
+                            (set (make-local-variable 'whitespace-style) '())
+                            (set (make-local-variable 'tab-width) 2)))
+    :mode "\\.go\\'")
+  (leaf go-autocomplete
+    :ensure t))
+
+(leaf php-mode
+  :ensure t)
+
+(provide 'init)
+
+(leaf web-mode
+  :ensure t
+  :hook (web-mode-hook . (lambda ()
+                          (set (make-local-variable 'whitespace-style) '()))))
+;;; init.el ends here
